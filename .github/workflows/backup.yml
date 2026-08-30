@@ -1,0 +1,23 @@
+name: Daily Auto Backup
+on:
+  schedule:
+    - cron: '30 16 * * *'  
+  workflow_dispatch: # तुम्हाला हवं तेव्हा Manual पण करता येईल
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create backup
+        run: |
+          DATE=$(date +"%d-%b-%Y")
+          cp index.html backup/index-$DATE.html
+          echo "Backup created for $DATE"
+      - name: Commit backup
+        run: |
+          git config user.name "arvpatil1-dev"
+          git config user.email "arvpatil1-dev@users.noreply.github.com"
+          git add backup/
+          git commit -m "Auto backup: $(date +'%d-%b-%Y')" || echo "No changes"
+          git push
