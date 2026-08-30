@@ -1,1 +1,244 @@
 
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>खतावही</title>
+<style>
+body{font-family:Arial, Noto Sans Devanagari; padding:10px;background:#f5f5f5;margin:0}
+.card{background:#fff;padding:15px;border-radius:10px;margin-bottom:10px;box-shadow:0 2px 5px #0001}
+input,select,button{width:100%;padding:10px;margin:5px 0;border:1px solid #ccc;border-radius:5px;box-sizing:border-box;font-size:14px}
+button{background:#0d6efd;color:#fff;border:0;font-weight:bold}
+.row{display:flex;gap:5px;flex-wrap:wrap}.row>*{flex:1; min-width:120px}
+table{width:100%;border-collapse:collapse;font-size:13px} th,td{border:1px solid #ddd;padding:6px;text-align:left} th{background:#eee}
+#langModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#0008;z-index:9999;justify-content:center;align-items:center}
+#langBox{background:#fff;padding:20px;border-radius:12px;width:90%;max-width:350px;text-align:center}
+#langBox button{margin:8px 0;padding:12px;font-size:16px}
+#mainTitle{cursor:pointer; user-select:none;}
+</style>
+</head>
+<body>
+
+<div id="langModal">
+<div id="langBox">
+<h3>भाषा निवडा / Select Language</h3>
+<button onclick="setUILang('mr')" style="background:#198754">मराठी</button>
+<button onclick="setUILang('en')" style="background:#0d6efd">English</button>
+<button onclick="setUILang('both')" style="background:#6c757d">दोन्ही / Both</button>
+<button onclick="closeLang()" style="background:#dc3545">बंद / Close</button>
+</div>
+</div>
+
+<div class="card">
+<h3 id="mainTitle" onclick="openLang()" style="margin:0">💰 <span id="t_entry">खाता एन्ट्री</span> <small style="font-size:11px;color:#666">▼</small></h3>
+<input type="date" id="date">
+<select id="supplier"></select>
+<div class="row">
+<input type="text" id="newSup" placeholder="नवीन अकाउंट">
+<button onclick="addSup()" style="background:#198754" id="btn_add">Add अकाउंट</button>
+</div>
+
+<select id="product"></select>
+<div class="row">
+<input type="text" id="newProd" placeholder="नवीन FD / Product नाव उदा. SBI FD 12-08-26">
+<button onclick="addProd()" style="background:#ff6f00" id="btn_addProd">Add FD/Product</button>
+</div>
+
+<div class="row">
+<select id="type">
+<option value="Received">जमा (Received)</option>
+<option value="Paid">खर्च (Paid)</option>
+<option value="Sale">विक्री (Sale)</option>
+<option value="Purchase">खरेदी (Purchase)</option>
+</select>
+<select id="mode"><option value="Cash">Cash / रोख</option><option value="Bank">Bank / बँक</option></select>
+</div>
+<input type="number" id="amount" placeholder="रक्कम / Amount">
+<input type="text" id="note" placeholder="नोट / Note">
+<button onclick="save()" id="btn_save">SAVE करा</button>
+<div id="msg" style="color:green;font-weight:bold"></div>
+</div>
+
+<div class="card">
+<div class="row">
+<button id="btn_report" onclick="loadReport()">रिपोर्ट</button>
+<button id="btn_trial" onclick="loadTrial()" style="background:#6c757d">ताळेबंद</button>
+<button id="btn_pl" onclick="loadProfitLoss()" style="background:#198754">P&L</button>
+<button id="btn_bank" onclick="checkMail()" style="background:#6610f2">बँक मेल चेक</button>
+</div>
+<div id="report"></div>
+</div>
+
+<div class="card">
+<h4 id="h_ledger">खाते उतारा / Party Ledger</h4>
+<div class="row">
+<select id="ledgerParty"></select>
+<button onclick="loadLedger()" id="btn_viewLedger">उतारा पहा</button>
+</div>
+<div id="ledger" style="overflow:auto"></div>
+</div>
+
+<div class="card" style="border:2px solid #ff6f00">
+<h4 id="h_fd">🏦 FD / Product खाते उतारा</h4>
+<div class="row">
+<select id="productLedger"></select>
+<button onclick="loadProductLedger()" style="background:#ff6f00" id="btn_fdLedger">FD उतारा पहा</button>
+</div>
+<div id="productLedgerDiv" style="overflow:auto"></div>
+</div>
+
+<script>
+var today=new Date().toISOString().split('T')[0];
+document.getElementById('date').value=today;
+var uiLang = localStorage.getItem('khata_lang') || 'both';
+
+function openLang(){ document.getElementById('langModal').style.display='flex'; }
+function closeLang(){ document.getElementById('langModal').style.display='none'; }
+
+function setUILang(lang){
+  uiLang=lang;
+  localStorage.setItem('khata_lang', lang);
+  closeLang();
+  applyLang();
+  loadReport();
+}
+
+function T(mr,en,both){
+  if(uiLang=='mr') return mr;
+  if(uiLang=='en') return en;
+  return both;
+}
+
+function applyLang(){
+  document.getElementById('t_entry').innerText = T('खाता एन्ट्री','Account Entry','खाता एन्ट्री');
+  document.getElementById('btn_add').innerText = T('Add अकाउंट','Add Account','Add अकाउंट');
+  document.getElementById('btn_addProd').innerText = T('Add FD/Product','Add FD/Product','Add FD/Product');
+  document.getElementById('btn_save').innerText = T('SAVE करा','SAVE','SAVE करा');
+  document.getElementById('btn_report').innerText = T('रिपोर्ट','Report','रिपोर्ट');
+  document.getElementById('btn_trial').innerText = T('ताळेबंद','Trial Balance','ताळेबंद');
+  document.getElementById('btn_pl').innerText = T('नफा-तोटा','P&L','P&L');
+  document.getElementById('btn_bank').innerText = T('बँक मेल चेक','Check Bank Mail','बँक मेल चेक');
+  document.getElementById('h_ledger').innerText = T('खाते उतारा','Party Ledger','खाते उतारा / Party Ledger');
+  document.getElementById('h_fd').innerText = T('🏦 FD खाते उतारा','🏦 FD Ledger','🏦 FD / Product खाते उतारा');
+  document.getElementById('btn_viewLedger').innerText = T('उतारा पहा','View Ledger','उतारा पहा');
+  document.getElementById('btn_fdLedger').innerText = T('FD उतारा पहा','View FD Ledger','FD उतारा पहा');
+  document.getElementById('newSup').placeholder = T('नवीन अकाउंट नाव','New Account Name','नवीन अकाउंट');
+  document.getElementById('newProd').placeholder = T('नवीन FD नाव','New FD / Product Name','नवीन FD / Product नाव');
+  document.getElementById('amount').placeholder = T('रक्कम','Amount','रक्कम / Amount');
+  document.getElementById('note').placeholder = T('नोट','Note','नोट / Note');
+  var typeSel = document.getElementById('type');
+  typeSel.options[0].text = T('जमा (Received)','Received','जमा (Received)');
+  typeSel.options[1].text = T('खर्च (Paid)','Paid','खर्च (Paid)');
+  typeSel.options[2].text = T('विक्री (Sale)','Sale','विक्री (Sale)');
+  typeSel.options[3].text = T('खरेदी (Purchase)','Purchase','खरेदी (Purchase)');
+  var modeSel = document.getElementById('mode');
+  modeSel.options[0].text = T('रोख','Cash','Cash / रोख');
+  modeSel.options[1].text = T('बँक','Bank','Bank / बँक');
+}
+
+function translateType(t){
+  t=(t+"").trim();
+  if(t=="Received") return T("जमा","Received","जमा");
+  if(t=="Paid") return T("खर्च","Paid","खर्च");
+  if(t=="Sale") return T("विक्री","Sale","विक्री");
+  if(t=="Purchase") return T("खरेदी","Purchase","खरेदी");
+  return t;
+}
+
+function loadSuppliers(){
+  google.script.run.withSuccessHandler(function(list){
+    var txt = T("-- अकाउंट निवडा --","-- Select Account --","-- अकाउंट निवडा --");
+    var html='<option value="">'+txt+'</option>';
+    list.forEach(function(s){ html+='<option value="'+s+'">'+s+'</option>'; });
+    document.getElementById('supplier').innerHTML=html;
+    document.getElementById('ledgerParty').innerHTML=html;
+  }).getSuppliers();
+  google.script.run.withSuccessHandler(function(list){
+    var html='<option value="">'+T('-- FD / Product निवडा --','-- Select FD / Product --','-- FD / Product निवडा --')+'</option>';
+    list.forEach(function(s){ html+='<option value="'+s+'">'+s+'</option>'; });
+    document.getElementById('product').innerHTML=html;
+    document.getElementById('productLedger').innerHTML=html;
+  }).getProducts();
+}
+loadSuppliers();
+function addSup(){
+  var n=document.getElementById('newSup').value;
+  if(!n) return alert(T('नाव टाका','Enter Name','नाव टाका'));
+  google.script.run.withSuccessHandler(function(r){ alert(r); document.getElementById('newSup').value=''; loadSuppliers(); }).addNewSupplier(n);
+}
+function addProd(){
+  var n=document.getElementById('newProd').value;
+  if(!n) return alert(T('FD/Product नाव टाका','Enter FD/Product Name','FD/Product नाव टाका'));
+  google.script.run.withSuccessHandler(function(r){ alert(r); document.getElementById('newProd').value=''; loadSuppliers(); }).addNewProduct(n);
+}
+function save(){
+  var obj={
+    date:document.getElementById('date').value,
+    supplier:document.getElementById('supplier').value,
+    product:document.getElementById('product').value || document.getElementById('newProd').value,
+    type:document.getElementById('type').value,
+    mode:document.getElementById('mode').value,
+    amount:document.getElementById('amount').value,
+    note:document.getElementById('note').value
+  };
+ if(!obj.supplier||!obj.amount) return alert(T('अकाउंट आणि रक्कम टाका','Enter Account and Amount','अकाउंट आणि रक्कम टाका'));
+  document.getElementById('msg').innerHTML='Saving...';
+  google.script.run.withSuccessHandler(function(r){ document.getElementById('msg').innerHTML=r; document.getElementById('amount').value=''; document.getElementById('note').value=''; loadReport(); }).addTransaction(obj);
+}
+function loadReport(){
+  google.script.run.withSuccessHandler(function(r){
+    var html = "<hr><div class='row'><div style='background:#fff3cd;padding:10px;border-radius:8px;text-align:center'><b>Cash</b><br>"+r.cash+"</div><div style='background:#cfe2ff;padding:10px;border-radius:8px;text-align:center'><b>Bank</b><br>"+r.bank+"</div><div style='background:#ffe0b2;padding:10px;border-radius:8px;text-align:center'><b>FD</b><br>"+r.fd+"</div><div style='background:#d1e7dd;padding:10px;border-radius:8px;text-align:center'><b>Total</b><br>"+r.total+"</div></div>";
+    html += "<br><b>"+T('जमा','Income','जमा')+":</b> "+r.sale+" | <b>"+T('खर्च','Expense','खर्च')+":</b> "+r.purchase;
+    document.getElementById('report').innerHTML=html;
+  }).getReportData();
+}
+function loadTrial(){
+  document.getElementById('report').innerHTML='Loading...';
+  google.script.run.withSuccessHandler(function(data){
+    if(!data.length){ document.getElementById('report').innerHTML='No Data'; return; }
+    var h='<table><tr><th>'+T('तारीख','Date','तारीख')+'</th><th>'+T('अकाउंट','Account','अकाउंट')+'</th><th>FD/Product</th><th>'+T('प्रकार','Type','प्रकार')+'</th><th>'+T('रक्कम','Amount','रक्कम')+'</th><th>'+T('शिल्लक','Balance','शिल्लक')+'</th><th>X</th></tr>';
+    data.forEach(function(r){ h+='<tr><td>'+r.date+'</td><td>'+r.supplier+'</td><td>'+r.product+'</td><td>'+translateType(r.type)+'</td><td>'+r.amount+'</td><td>'+r.total+'</td><td><button onclick="del('+r.row+')" style="background:red;padding:2px 5px">X</button></td></tr>'; });
+    h+='</table>'; document.getElementById('report').innerHTML=h;
+  }).getTrialBalanceDetails();
+}
+function loadProfitLoss(){
+  document.getElementById('report').innerHTML='Loading...';
+  google.script.run.withSuccessHandler(function(r){
+    var html = "<h3>"+T('नफा-तोटा','Profit-Loss','नफा-तोटा')+"</h3><div style='background:#e7f5ff;padding:10px;border-radius:8px'><b>"+T('जमा','Income','जमा')+":</b> "+r.jama+" | <b>"+T('खर्च','Expense','खर्च')+":</b> "+r.kharch+" | <b style='color:"+(r.profit>=0?"green":"red")+"'>Net: "+r.profit+"</b></div>";
+    html += "<h4 style='color:green'>"+T('जमा','Income','जमा')+"</h4><table><tr><th>"+T('तारीख','Date','तारीख')+"</th><th>"+T('अकाउंट','Account','अकाउंट')+"</th><th>"+T('तपशील','Details','तपशील')+"</th><th>"+T('रक्कम','Amount','रक्कम')+"</th></tr>";
+    r.income.forEach(function(it){ html += "<tr><td>"+it.date+"</td><td>"+it.supplier+"</td><td>"+it.product+"</td><td style='color:green'>"+it.amount+"</td></tr>"; });
+    html += "</table><h4 style='color:red'>"+T('खर्च','Expense','खर्च')+"</h4><table><tr><th>"+T('तारीख','Date','तारीख')+"</th><th>"+T('अकाउंट','Account','अकाउंट')+"</th><th>"+T('तपशील','Details','तपशील')+"</th><th>"+T('रक्कम','Amount','रक्कम')+"</th></tr>";
+    r.expense.forEach(function(it){ html += "<tr><td>"+it.date+"</td><td>"+it.supplier+"</td><td>"+it.product+"</td><td style='color:red'>"+it.amount+"</td></tr>"; });
+    html += "</table>"; document.getElementById('report').innerHTML=html;
+  }).getProfitLossData();
+}
+function loadLedger(){
+  var p=document.getElementById('ledgerParty').value;
+  if(!p) return alert(T('अकाउंट निवडा','Select Account','अकाउंट निवडा'));
+  document.getElementById('ledger').innerHTML='Loading...';
+  google.script.run.withSuccessHandler(function(data){
+    if(!data.length){ document.getElementById('ledger').innerHTML='No Data'; return; }
+    var h='<table><tr><th>'+T('तारीख','Date','तारीख')+'</th><th>'+T('तपशील','Details','तपशील')+'</th><th>'+T('प्रकार','Type','प्रकार')+'</th><th>'+T('खर्च','Expense','खर्च')+'</th><th>'+T('जमा','Income','जमा')+'</th><th>'+T('शिल्लक','Balance','शिल्लक')+'</th><th>X</th></tr>';
+    data.forEach(function(r){ var paid = (r.type=='Paid'||r.type=='Purchase')? r.amount : ''; var rec = (r.type=='Received'||r.type=='Sale')? r.amount : ''; h+='<tr><td>'+r.date+'</td><td>'+r.product+'</td><td>'+translateType(r.type)+'</td><td>'+paid+'</td><td>'+rec+'</td><td style="font-weight:bold;color:green">'+r.bal+'</td><td><button onclick="del('+r.row+')" style="background:red;padding:2px 5px">X</button></td></tr>'; });
+    h+='</table>'; document.getElementById('ledger').innerHTML=h;
+  }).getLedger(p);
+}
+function loadProductLedger(){
+  var p=document.getElementById('productLedger').value;
+  if(!p) return alert(T('FD/Product निवडा','Select FD/Product','FD/Product निवडा'));
+  document.getElementById('productLedgerDiv').innerHTML='Loading...';
+  google.script.run.withSuccessHandler(function(data){
+    if(!data.length){ document.getElementById('productLedgerDiv').innerHTML='No Data'; return; }
+    var h='<table><tr><th>'+T('तारीख','Date','तारीख')+'</th><th>'+T('अकाउंट','Account','अकाउंट')+'</th><th>'+T('प्रकार','Type','प्रकार')+'</th><th>'+T('जमा (FD मध्ये)','Deposit','जमा (FD मध्ये)')+'</th><th>'+T('काढले','Withdraw','काढले')+'</th><th>'+T('शिल्लक','Balance','शिल्लक')+'</th><th>X</th></tr>';
+    data.forEach(function(r){ var paid = (r.type=='Paid'||r.type=='Purchase')? r.amount : ''; var rec = (r.type=='Received'||r.type=='Sale')? r.amount : ''; h+='<tr><td>'+r.date+'</td><td>'+r.supplier+'</td><td>'+translateType(r.type)+'</td><td style="color:green">'+paid+'</td><td style="color:red">'+rec+'</td><td style="font-weight:bold;color:#ff6f00">'+r.bal+'</td><td><button onclick="del('+r.row+')" style="background:red;padding:2px 5px">X</button></td></tr>'; });
+    h+='</table>'; document.getElementById('productLedgerDiv').innerHTML=h;
+  }).getProductLedger(p);
+}
+function del(row){ if(!confirm(T('Delete करायचं का?','Delete?','Delete करायचं का?'))) return; google.script.run.withSuccessHandler(function(r){ alert(r); loadReport(); document.getElementById('ledger').innerHTML=''; document.getElementById('productLedgerDiv').innerHTML=''; }).deleteAndRecalculate(row); }
+function checkMail(){ document.getElementById('report').innerHTML='Checking Mail...'; google.script.run.withSuccessHandler(function(r){ alert(r); loadReport(); }).checkKotakMailsAuto(); }
+loadReport();
+applyLang();
+</script>
+</body>
+</html>
