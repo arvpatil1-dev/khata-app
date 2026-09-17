@@ -167,3 +167,10 @@ function getProfitLossData(){
   }
   return {jama:jama, kharch:kharch, profit:jama-kharch, income:income, expense:expense};
 }
+function getProductsNew(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName("PRODUCTS");
+  if(!sh) return ["SBI FD","Kotak FD","BOM FD"];
+  if(sh.getLastRow()<2) return [];
+  return sh.getRange(2,1,sh.getLastRow()-1,1).getValues().flat().filter(String);
+}
