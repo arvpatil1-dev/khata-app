@@ -120,17 +120,6 @@ function getProductLedger(productName){
   for(var i=0; i<data.length; i++){ if((data[i][2]+"").trim().toLowerCase()==search){ var d = data[i][0]; var dStr=""; try{ dStr=Utilities.formatDate(new Date(d), "Asia/Kolkata", "dd-MM-yyyy"); }catch(e){ dStr=d+""; } list.push({ row:i+2, date:dStr, sortTime: new Date(d).getTime(), supplier:data[i][1]+"", type:(data[i][3]+"").trim(), mode:data[i][4]+"", amount:Number(data[i][5])||0 }); } }
   list.sort(function(a,b){ return a.sortTime - b.sortTime; }); var bal=0; for(var k=0;k<list.length;k++){ if(list[k].type=="Paid"||list[k].type=="Purchase") bal+=list[k].amount; else bal-=list[k].amount; list[k].bal=bal; list[k].total=bal; delete list[k].sortTime; } return list;
 }
-function deleteAndRecalculate(row){
-  var sh = getMainSheet(); if(row < 2) return "Invalid Row"; sh.deleteRow(row); if(sh.getLastRow() < 2) return "Deleted!";
-  var data = sh.getRange(2,1,sh.getLastRow()-1,12).getValues(); var c=0,b=0,f=0,t=0;
-  for(var i=0;i<data.length;i++){
-    var type=data[i][3]+"", mode=data[i][4]+"", amt=Number(data[i][5])||0; var prod=(data[i][2]+"").toLowerCase(); var isFD = prod.indexOf("fd")>-1;
-    if(isFD){ if(type=="Paid"||type=="Purchase"){ if(mode=="Bank") b-=amt; else c-=amt; f+=amt; } else { f-=amt; if(mode=="Bank") b+=amt; else c+=amt; } }
-    else { if(type=="Sale"||type=="Received"){ if(mode=="Cash") c+=amt; else if(mode=="Bank") b+=amt; } else { if(mode=="Cash") c-=amt; else if(mode=="Bank") b-=amt; } }
-    t=c+b+f; sh.getRange(i+2,7,1,5).setValues([[c,b,f,t,t]]);
-  }
-  return "✅ Deleted! New Total: "+t+" (Cash:"+c+" Bank:"+b+" FD:"+f+")";
-}
 function checkKotakMailsAuto(){
   var query = 'newer_than:2d (from:kotak OR from:hdfcbank OR from:hdfc OR from:mahabank OR from:bankofmaharashtra) (credited OR debited OR deposited OR withdrawn OR spent)';
   var threads = GmailApp.search(query, 0, 30); var count = 0;
