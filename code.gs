@@ -114,6 +114,12 @@ function getLedger(party){
   for(var i=0; i<data.length; i++){ if((data[i][1]+"").trim().toLowerCase()==search){ var d = data[i][0]; var dStr = ""; try { dStr = Utilities.formatDate(new Date(d), "Asia/Kolkata", "dd-MM-yyyy"); } catch(e){ dStr = d+""; } list.push({ row:i+2, date:dStr, sortTime: new Date(d).getTime(), product:data[i][2]+"", type:(data[i][3]+"").trim(), mode:data[i][4]+"", amount:Number(data[i][5])||0, note:data[i][11]+"" }); } }
   list.sort(function(a,b){ return a.sortTime - b.sortTime; }); var bal=0; for(var k=0;k<list.length;k++){ if(list[k].type=="Received"||list[k].type=="Sale") bal+=list[k].amount; else bal-=list[k].amount; list[k].bal=bal; list[k].total=bal; delete list[k].sortTime; } return list;
 }
+function getProductLedger(productName){
+  var sh = getMainSheet(); if(sh.getLastRow()<2) return [];
+  var data = sh.getRange(2,1,sh.getLastRow()-1,12).getValues(); var list=[]; var search=(productName+"").trim().toLowerCase();
+  for(var i=0; i<data.length; i++){ if((data[i][2]+"").trim().toLowerCase()==search){ var d = data[i][0]; var dStr=""; try{ dStr=Utilities.formatDate(new Date(d), "Asia/Kolkata", "dd-MM-yyyy"); }catch(e){ dStr=d+""; } list.push({ row:i+2, date:dStr, sortTime: new Date(d).getTime(), supplier:data[i][1]+"", type:(data[i][3]+"").trim(), mode:data[i][4]+"", amount:Number(data[i][5])||0 }); } }
+  list.sort(function(a,b){ return a.sortTime - b.sortTime; }); var bal=0; for(var k=0;k<list.length;k++){ if(list[k].type=="Paid"||list[k].type=="Purchase") bal+=list[k].amount; else bal-=list[k].amount; list[k].bal=bal; list[k].total=bal; delete list[k].sortTime; } return list;
+}
 function deleteAndRecalculate(row){
   var sh = getMainSheet(); if(row < 2) return "Invalid Row"; sh.deleteRow(row); if(sh.getLastRow() < 2) return "Deleted!";
   var data = sh.getRange(2,1,sh.getLastRow()-1,12).getValues(); var c=0,b=0,f=0,t=0;
@@ -150,4 +156,14 @@ function checkKotakMailsAuto(){
   }
   return "Added: " + count;
 }
-
+function getProfitLossData(){
+  var sh = getMainSheet(); if(sh.getLastRow()<2) return {jama:0, kharch:0, profit:0, income:[], expense:[]};
+  var data = sh.getRange(2,1,sh.getLastRow()-1,12).getValues(); var income=[], expense=[]; var jama=0, kharch=0;
+  for(var i=0;i<data.length;i++){
+    var d=data[i][0]; var dStr=""; try{ dStr=Utilities.formatDate(new Date(d), "Asia/Kolkata", "dd-MM-yyyy"); }catch(e){ dStr=d+""; }
+    var obj={ date:dStr, supplier:data[i][1]+"", product:data[i][2]+"", type:data[i][3]+"", mode:data[i][4]+"", amount:Number(data[i][5])||0, row:i+2, note:data[i][11]+"" };
+    var t=(data[i][3]+"").trim(); var prod=(data[i][2]+"").toLowerCase(); if(prod.indexOf("fd")>-1) continue;
+    if(t=="Sale" || t=="Received"){ jama+=obj.amount; income.push(obj); } else { kharch+=obj.amount; expense.push(obj); }
+  }
+  return {jama:jama, kharch:kharch, profit:jama-kharch, income:income, expense:expense};
+}
