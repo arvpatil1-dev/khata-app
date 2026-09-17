@@ -156,14 +156,4 @@ function checkKotakMailsAuto(){
   }
   return "Added: " + count;
 }
-function getProfitLossData(){
-  var sh = getMainSheet(); if(sh.getLastRow()<2) return {jama:0, kharch:0, profit:0, income:[], expense:[]};
-  var data = sh.getRange(2,1,sh.getLastRow()-1,12).getValues(); var income=[], expense=[]; var jama=0, kharch=0;
-  for(var i=0;i<data.length;i++){
-    var d=data[i][0]; var dStr=""; try{ dStr=Utilities.formatDate(new Date(d), "Asia/Kolkata", "dd-MM-yyyy"); }catch(e){ dStr=d+""; }
-    var obj={ date:dStr, supplier:data[i][1]+"", product:data[i][2]+"", type:data[i][3]+"", mode:data[i][4]+"", amount:Number(data[i][5])||0, row:i+2, note:data[i][11]+"" };
-    var t=(data[i][3]+"").trim(); var prod=(data[i][2]+"").toLowerCase(); if(prod.indexOf("fd")>-1) continue;
-    if(t=="Sale" || t=="Received"){ jama+=obj.amount; income.push(obj); } else { kharch+=obj.amount; expense.push(obj); }
-  }
-  return {jama:jama, kharch:kharch, profit:jama-kharch, income:income, expense:expense};
-}
+
